@@ -34,11 +34,6 @@ int server_operation(void) {
 	struct sockaddr_in saddr, caddr;
 	struct stat obj;
 	char terminate[8];
-	int max = 5;
-	int i = 0;
-	int offset, remainingSize;
-	pid_t pid;
-	int status;
 
 	saddr.sin_family = AF_INET;
 	saddr.sin_port = htons(2456);
@@ -62,15 +57,6 @@ int server_operation(void) {
 	while(1) {
 		signal(SIGINT, signal_handler); 
 		inet_len = sizeof(caddr);
-		while (i < max) {
-			pid = fork();
-			if (pid < 0) {
-				fprintf(stderr, "fork failed");
-				exit(1);
-			}
-			else if (pid == 0) {
-				//child process
-				// child created
   			client = accept(server, (struct sockaddr *)&caddr, &inet_len);
 			if ( client == -1) {
 			printf("Error on client accept\n");
@@ -79,8 +65,6 @@ int server_operation(void) {
 			}
 			else {
 			printf("connection established\n");
-			i++;
-			printf("Number of clients [%d]\n",i);
 			}
 		//printf("Server new client connection [%s/%d]", inet_ntoa(caddr.sin_addr), caddr.sin_port);
 
@@ -114,18 +98,8 @@ int server_operation(void) {
 			printf("Error writing network data\n");
 			return (-1);
 			}
-
 			printf("Sent [%s]\n", fileName);
 			close(client);
-			i--;
-			exit(1);
-			}
-			else {
-				while (wait(&status) != pid) {
-					//parent
-				}
-			}
-		}
 	}
   return 0;
 }

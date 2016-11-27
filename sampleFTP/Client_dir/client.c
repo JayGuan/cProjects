@@ -16,7 +16,6 @@ int client_operation(char *fName) {
 	char fileName[50];
 	char *fileContent;
 	char terminate[8];
-	FILE *fp;
 
 	memset(fileName, '\0', sizeof(fileName));
 	strncpy(fileName, fName, 50);
@@ -59,15 +58,15 @@ int client_operation(char *fName) {
 
 	fileHandle = open(fileName, O_CREAT | O_EXCL | O_WRONLY, 0666);
 	write(fileHandle, fileContent, size, 0);
-	
-	if(read(socket_fd, terminate, sizeof(terminate)) != sizeof(terminate)) {
-			printf("Error reading network data");
-			return(-1);
-		}
+	free(fileContent);
+	close(fileHandle);
+
+	if(read(socket_fd, &terminate, sizeof(terminate)) != sizeof(terminate)) {
+		printf("Error reading network data");
+		return(-1);
+	}
 		//fileName = ntohl(fileName);
 	printf("Received a termination string of [%s]\n", terminate);
-
-	close(fileHandle);
 	close(socket_fd);
 	return (0);
 }
