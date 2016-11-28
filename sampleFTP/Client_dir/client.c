@@ -7,22 +7,41 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <string.h>
+#include <signal.h>
+
+void selfTerminate(void) {
+  raise(SIGKILL);
+  return;
+}
+
+void signal_handler(int num) {
+  printf("Signal [%d] received\n",num);
+  //TO BE DONE check if there is any files are transferring
+
+  //terminate the program
+  selfTerminate();
+  return;
+}
 
 int client_operation(char *fName) {
-	int socket_fd, size, fileHandle, remainingSize;
+	int socket_fd, size, fileHandle, totalSize, sizeReceived, confirm, count = 0;
 	ssize_t len;
 	struct sockaddr_in caddr;
 	char *ip = "127.0.0.1";
 	char fileName[50];
 	char *fileContent;
 	char terminate[8];
-
+	FILE *fp;
 	memset(fileName, '\0', sizeof(fileName));
 	strncpy(fileName, fName, 50);
+	confirm = 1;
+
+	signal(SIGINT, signal_handler); 
 
 	caddr.sin_family = AF_INET;
 	// TO BE DONE change port number to 2000-3000
-	caddr.sin_port = htons(2456);
+	caddr.sin_port = htons(2929);
 	if (inet_aton(ip, &caddr.sin_addr) == 0) {
 		return (-1);
 	}
@@ -43,30 +62,47 @@ int client_operation(char *fName) {
 	}
 	printf("Sent a file request of [%s]\n", fileName);
 
-	if (read(socket_fd, &size, sizeof(int)) != sizeof(int)) {
+	fp = fopen(fileName, "w");
+	//fseek(fp, SEEK_SET, 0);
+	read(socket_fd, &totalSize, sizeof(int));
+
+	while (totalSize > sizeReceived) {
+		if (read(socket_fd, &size, sizeof(int)) != sizeof(int)) {
 		printf("Error reading network data\n");
 		return (-1);
+		}
+		else {
+			printf("received size [%d]\n",size);
+		}
+		if (!size) {
+			printf("file is empty\n");
+		}
+	
+		//receive data
+		fileContent = malloc(size);
+		recv(socket_fd, fileContent, size, 0);
+		printf("file content size [%lu]\n", strlen(fileContent));
+		printf("Received data [%s]\n",fileContent);
+		fwrite(fileContent, 1, size, fp);
+		count++;
+		sizeReceived+=size;
+		printf("size received [%d]\n",sizeReceived);
+		send(socket_fd, &confirm, sizeof(int), 0);
+		printf("confirmation sent\n");
 	}
-	if (!size) {
-		printf("file is empty\n");
+	printf("count [%d]\n",count);
+	close(fp);
+
+	//receive termination string
+	memset(terminate, '\0', sizeof(terminate));
+	while (strcmp(terminate, "cmsc257")) {
+		recv(socket_fd, terminate, sizeof(terminate),0);
 	}
-
-	printf("Total size[%d]\n",size);
-	fileContent = malloc(size);
-	//read(socket_fd, fileContent, size);
-	recv(socket_fd, fileContent, size, 0);
-
-	fileHandle = open(fileName, O_CREAT | O_EXCL | O_WRONLY, 0666);
-	write(fileHandle, fileContent, size, 0);
-	free(fileContent);
-	close(fileHandle);
-
-	if(read(socket_fd, &terminate, sizeof(terminate)) != sizeof(terminate)) {
-		printf("Error reading network data");
-		return(-1);
-	}
-		//fileName = ntohl(fileName);
+	send(socket_fd, &confirm, sizeof(int), 0);
 	printf("Received a termination string of [%s]\n", terminate);
+	if (!strcmp(terminate, "cmsc257")) {
+		printf("close socket confirmed");
+	}
 	close(socket_fd);
 	return (0);
 }
