@@ -10,21 +10,6 @@
 #include <string.h>
 #include <signal.h>
 
-void selfTerminate(void) {
-  raise(SIGKILL);
-  return;
-}
-
-void signal_handler(int num) {
-  printf("Signal [%d] received\n",num);
-  //TO BE DONE check if there is any files are transferring
-
-  //terminate the program
-  selfTerminate();
-  return;
-}
-
-int client_operation(char *fName) {
 	int socket_fd, size, fileHandle, totalSize, sizeReceived, confirm, count = 0;
 	ssize_t len;
 	struct sockaddr_in caddr;
@@ -33,6 +18,29 @@ int client_operation(char *fName) {
 	char *fileContent;
 	char terminate[8];
 	FILE *fp;
+	int connected = 0;
+
+void selfTerminate(void) {
+  raise(SIGKILL);
+  return;
+}
+
+void serverFinished(void) {
+
+}
+
+void signal_handler(int num) {
+  printf("Signal [%d] received\n",num);
+  //TO BE DONE check if there is any files are transferring
+  close(fp);
+  close(socket_fd);
+  //terminate the program
+  selfTerminate();
+  return;
+}
+
+int client_operation(char *fName) {
+
 	memset(fileName, '\0', sizeof(fileName));
 	strncpy(fileName, fName, 50);
 	confirm = 1;
@@ -61,7 +69,7 @@ int client_operation(char *fName) {
 		return (-1);
 	}
 	printf("Sent a file request of [%s]\n", fileName);
-
+	connected = 1;
 	fp = fopen(fileName, "w");
 	//fseek(fp, SEEK_SET, 0);
 	read(socket_fd, &totalSize, sizeof(int));
@@ -82,7 +90,15 @@ int client_operation(char *fName) {
 		fileContent = malloc(size);
 		recv(socket_fd, fileContent, size, 0);
 		printf("file content size [%lu]\n", strlen(fileContent));
-		printf("Received data [%s]\n",fileContent);
+		// if termination string is received while transferring files
+		// close socket and terminate
+		if (strcmp (fileContent,"cmsc257") == 0) {
+			printf("termination string received\n");
+			  close(fp);
+  			  close(socket_fd);
+  				//terminate the program
+ 			 selfTerminate();
+		}
 		fwrite(fileContent, 1, size, fp);
 		count++;
 		sizeReceived+=size;
@@ -101,7 +117,7 @@ int client_operation(char *fName) {
 	send(socket_fd, &confirm, sizeof(int), 0);
 	printf("Received a termination string of [%s]\n", terminate);
 	if (!strcmp(terminate, "cmsc257")) {
-		printf("close socket confirmed");
+		printf("close socket confirmed\n");
 	}
 	close(socket_fd);
 	return (0);
