@@ -12,22 +12,22 @@
 #include <sys/sendfile.h>
 #include <sys/socket.h>
 
-	int server, client, sizeSent, sizePerTrans = 256, size;
-	uint32_t inet_len;
-	char fileName[50];
-	struct sockaddr_in saddr, caddr;
-	struct stat obj;
-	char terminate[8];
-	int max = 5, i = 0;
-	int confirm = 0, totalSize;
-	pid_t pid;
-	int status;
-	FILE *fp;
-	char buffer[256];
-	int signalValue = 0, fileOpen = 0;
+int server, client, sizeSent, sizePerTrans = 256, size;
+uint32_t inet_len;
+char fileName[50];
+struct sockaddr_in saddr, caddr;
+struct stat obj;
+char terminate[8];
+int max = 5, i = 0;
+int confirm = 0, totalSize;
+pid_t pid;
+int status;
+FILE *fp;
+char buffer[256];
+int signalValue = 0, fileOpen = 0;
 void selfTerminate(void) {
-  raise(SIGKILL);
-  return;
+	raise(SIGKILL);
+	return;
 }
 
 
@@ -85,9 +85,9 @@ int server_operation(void) {
 		inet_len = sizeof(caddr);
 		client = accept(server, (struct sockaddr *)&caddr, &inet_len);
 		if ( client == -1) {
-		printf("Error on client accept\n");
-		close(server);
-		return (-1);
+			printf("Error on client accept\n");
+			close(server);
+			return (-1);
 		}
 		else {
 			i++;
@@ -98,19 +98,13 @@ int server_operation(void) {
 			if (pid < 0) {
 				fprintf(stderr, "fork failed");
 				exit(1);
+			} else if (pid == 0) {
+				if(read(client, &fileName, sizeof(fileName)) != sizeof(fileName)) {
+					printf("Error reading network data");
+					close(server);
+					return(-1);
 			}
-						else if (pid == 0) {
-				//child process
-				// child created
-		//printf("Server new client connection [%s/%d]", inet_ntoa(caddr.sin_addr), caddr.sin_port);
-
-			if(read(client, &fileName, sizeof(fileName)) != sizeof(fileName)) {
-			printf("Error reading network data");
-			close(server);
-			return(-1);
-			}
-		//	printf("Received a fileName of [%s]\n", fileName);
-
+			printf("Received a fileName of [%s]\n", fileName);
 			stat(fileName, &obj);
 			fp = fopen(fileName, "r");
 			fileOpen = 1;
@@ -128,11 +122,9 @@ int server_operation(void) {
 					fread(buffer, 1, size, fp);
 					strncpy(data, buffer, size);
 					send(client, &size, sizeof(int), 0);
-			//		printf("sent size [%d]\n",size);
 					//send data
 					send(client, data, sizeof(data), 0);
 					recv(client, &confirm, sizeof(int),0);
-			//		printf("confirm = [%d]", confirm);
 					sizeSent+=size;
 				}
 				// transfer remianing size
@@ -142,11 +134,9 @@ int server_operation(void) {
 					fread(buffer, 1, size, fp);
 					strncpy(data, buffer, size);
 					send(client, &size, sizeof(int), 0);
-				//	printf("sent size [%d]\n",size);
 					//send data
 					send(client, data, sizeof(data), 0);
 					recv(client, &confirm, sizeof(int),0);
-				//	printf("confirm = [%d]", confirm);
 					sizeSent+=size;
 				}
 			}
@@ -156,20 +146,14 @@ int server_operation(void) {
 			memset(terminate, '\0', sizeof(terminate));
 			strncpy(terminate, "cmsc257", 8);
 			send(client, terminate, sizeof(terminate), 0);
-		//	printf("termination string [%s] sent\n",terminate);
 			confirm = 0;
 			while (confirm == 0) {
 				recv(client, &confirm, sizeof(int),0);
-	//			printf("waiting to close\n");
 			}
 			printf("close");
 			close(client);
 			i--;
-			exit(0);
-			
-			//safeTerminate();
-			//close(client);
-			
+			exit(0);		
 			}
 			else {
 			//	wait(&status);
