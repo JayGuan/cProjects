@@ -103,7 +103,6 @@ int server_operation(void) {
 			while(sizeSent < totalSize) {
 				// transfer by max size
 				if ((totalSize-sizeSent >= sizePerTrans) && (confirm == 1)) {
-					printf("if while loops\n");
 					confirm = 0;
 					size = sizePerTrans;
 					fread(buffer, 1, size, fp);
@@ -118,7 +117,6 @@ int server_operation(void) {
 				}
 				// transfer remianing size
 				else if ((totalSize-sizeSent < sizePerTrans) && (confirm == 1)) {
-					printf("else if while loops\n");
 					confirm = 0;
 					size = totalSize - sizeSent;
 					fread(buffer, 1, size, fp);
@@ -132,26 +130,6 @@ int server_operation(void) {
 					sizeSent+=size;
 				}
 			}
-/*
-			fread(buffer, 1, size, fp);
-			strncpy(data, buffer, size);
-			if (fileHandle == -1) {
-				size = 0;
-				printf("fileHanlde = -1\n");
-			}
-
-			send(client, &size, sizeof(int), 0);
-			printf("sent size [%d]\n",size);
-
-			if (size) {
-				//send data
-				send(client, data, sizeof(data), 0);
-				printf("sent data[%s]\n",data);
-				printf("Sent [%s]\n", fileName);
-			} else {
-				printf("file size 0\n");
-			}
-*/
 			fclose(fp);
 			//send termination string
 			memset(terminate, '\0', sizeof(terminate));
